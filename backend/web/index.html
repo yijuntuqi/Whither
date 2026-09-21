@@ -67,6 +67,52 @@
   }
   #send:disabled { opacity: .5; cursor: default; }
   .hint { max-width: 760px; margin: 6px auto 0; font-size: 12px; color: var(--sub); }
+
+  /* ===== 偏好面板 ===== */
+  .pref-toggle {
+    max-width: 760px; margin: 0 auto 8px; text-align: center;
+  }
+  .pref-toggle button {
+    background: var(--brand-soft); color: var(--brand); border: 1px solid var(--brand);
+    border-radius: 999px; padding: 5px 16px; font-size: 12.5px; cursor: pointer;
+    transition: all .2s;
+  }
+  .pref-toggle button:hover { background: var(--brand); color: #fff; }
+  .pref-panel {
+    max-width: 760px; margin: 0 auto 10px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px;
+    display: none;
+  }
+  .pref-panel.open { display: block; }
+  .pref-panel h3 { font-size: 14px; margin: 0 0 12px; color: var(--ink); }
+  .pref-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+  .pref-q { font-size: 13px; }
+  .pref-q .pq-label { font-weight: 600; margin-bottom: 4px; }
+  .pref-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pref-opts label {
+    background: #f1f4f9; padding: 3px 10px; border-radius: 6px; cursor: pointer;
+    font-size: 12px; transition: all .15s; border: 1px solid transparent;
+  }
+  .pref-opts input[type=radio] { display: none; }
+  .pref-opts input[type=radio]:checked + span {
+    color: var(--brand); font-weight: 600;
+  }
+  .pref-opts label:has(input:checked) {
+    background: var(--brand-soft); border-color: var(--brand); color: var(--brand);
+  }
+  .pref-opts input[type=text] {
+    border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px;
+    font-size: 12px; width: 100%; margin-top: 4px; font-family: inherit;
+  }
+  .pref-opts input[type=text]:focus { outline: none; border-color: var(--brand); }
+  .pref-submit {
+    margin-top: 12px; text-align: center;
+  }
+  .pref-submit button {
+    background: var(--brand); color: #fff; border: none; border-radius: 8px;
+    padding: 7px 24px; font-size: 13px; cursor: pointer;
+  }
+  .pref-submit button:hover { opacity: .9; }
 </style>
 </head>
 <body>
@@ -79,6 +125,70 @@
 <main id="chat">
   <div class="wrap" id="messages"></div>
 </main>
+
+<div class="pref-toggle"><button id="prefToggle">🎯 设置出行偏好</button></div>
+<div class="pref-panel" id="prefPanel">
+  <h3>出行偏好（可选，填写后会让规划更精准）</h3>
+  <div class="pref-grid">
+    <div class="pref-q">
+      <div class="pq-label">1️⃣ 出行节奏</div>
+      <div class="pref-opts">
+        <label><input type="radio" name="pace" value="轻松休闲"><span>轻松休闲</span></label>
+        <label><input type="radio" name="pace" value="适中紧凑"><span>适中紧凑</span></label>
+        <label><input type="radio" name="pace" value="特种兵式"><span>特种兵式</span></label>
+      </div>
+    </div>
+    <div class="pref-q">
+      <div class="pq-label">2️⃣ 预算水平</div>
+      <div class="pref-opts">
+        <label><input type="radio" name="budget" value="经济"><span>经济(&lt;500/天)</span></label>
+        <label><input type="radio" name="budget" value="中等"><span>中等(500-1000/天)</span></label>
+        <label><input type="radio" name="budget" value="宽裕"><span>宽裕(1000+/天)</span></label>
+      </div>
+    </div>
+    <div class="pref-q">
+      <div class="pq-label">3️⃣ 酒店偏好</div>
+      <div class="pref-opts">
+        <label><input type="radio" name="hotel" value="近地铁"><span>近地铁</span></label>
+        <label><input type="radio" name="hotel" value="市中心商圈"><span>市中心商圈</span></label>
+        <label><input type="radio" name="hotel" value="景区周边"><span>景区周边</span></label>
+        <label><input type="radio" name="hotel" value="性价比"><span>性价比</span></label>
+      </div>
+    </div>
+    <div class="pref-q">
+      <div class="pq-label">4️⃣ 餐饮偏好</div>
+      <div class="pref-opts">
+        <label><input type="radio" name="food" value="本地特色"><span>本地特色</span></label>
+        <label><input type="radio" name="food" value="网红打卡"><span>网红打卡</span></label>
+        <label><input type="radio" name="food" value="家常菜"><span>家常菜</span></label>
+        <label><input type="radio" name="food" value="不限"><span>不限</span></label>
+      </div>
+    </div>
+    <div class="pref-q">
+      <div class="pq-label">5️⃣ 交通偏好</div>
+      <div class="pref-opts">
+        <label><input type="radio" name="transport" value="公共交通"><span>公共交通</span></label>
+        <label><input type="radio" name="transport" value="打车"><span>打车</span></label>
+        <label><input type="radio" name="transport" value="租车"><span>租车自驾</span></label>
+        <label><input type="radio" name="transport" value="混合"><span>混合</span></label>
+      </div>
+    </div>
+    <div class="pref-q">
+      <div class="pq-label">6️⃣ 第一站是否先去酒店</div>
+      <div class="pref-opts">
+        <label><input type="radio" name="hotel_first" value="true"><span>是，先放行李</span></label>
+        <label><input type="radio" name="hotel_first" value="false"><span>否，直接游览</span></label>
+      </div>
+    </div>
+    <div class="pref-q" style="grid-column: 1 / -1">
+      <div class="pq-label">7️⃣ 特殊需求（自由填空）</div>
+      <div class="pref-opts">
+        <input type="text" name="special" placeholder="如：不吃辣、恐高、带老人小孩、需要无障碍等" style="max-width:500px">
+      </div>
+    </div>
+  </div>
+  <div class="pref-submit"><button id="prefSend">填好了，开始规划</button></div>
+</div>
 
 <footer>
   <div class="inputbar">
@@ -228,6 +338,43 @@ $input.addEventListener('input', () => {
   $input.style.height = Math.min($input.scrollHeight, 120) + 'px';
 });
 $input.focus();
+
+// ===== 偏好面板 =====
+const $prefToggle = document.getElementById('prefToggle');
+const $prefPanel = document.getElementById('prefPanel');
+const $prefSend = document.getElementById('prefSend');
+
+$prefToggle.addEventListener('click', () => {
+  $prefPanel.classList.toggle('open');
+  $prefToggle.textContent = $prefPanel.classList.contains('open')
+    ? '收起偏好面板' : '🎯 设置出行偏好';
+});
+
+function collectPrefs() {
+  const get = name => {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? el.value : '';
+  };
+  const special = document.querySelector('input[name="special"]').value.trim();
+  const parts = [];
+  const pace = get('pace'); if (pace) parts.push('出行节奏=' + pace);
+  const budget = get('budget'); if (budget) parts.push('预算=' + budget);
+  const hotel = get('hotel'); if (hotel) parts.push('酒店偏好=' + hotel);
+  const food = get('food'); if (food) parts.push('餐饮偏好=' + food);
+  const transport = get('transport'); if (transport) parts.push('交通偏好=' + transport);
+  const hf = get('hotel_first'); if (hf) parts.push('第一站先去酒店=' + (hf === 'true' ? '是' : '否'));
+  if (special) parts.push('特殊需求=' + special);
+  return parts.length ? '【出行偏好】' + parts.join('，') + '\n\n' : '';
+}
+
+$prefSend.addEventListener('click', () => {
+  const prefs = collectPrefs();
+  if (!prefs) { $input.focus(); return; }
+  $input.value = prefs + ($input.value || '帮我规划行程并导出PDF');
+  $prefPanel.classList.remove('open');
+  $prefToggle.textContent = '🎯 设置出行偏好';
+  $input.focus();
+});
 </script>
 </body>
 </html>
