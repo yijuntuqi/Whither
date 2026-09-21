@@ -1,10 +1,10 @@
-[deploy]
-  runtime = "python"
-  
+# Railway 后端部署配置：使用仓库根目录 Dockerfile 构建
 [build]
+  builder = "DOCKERFILE"
   dockerfilePath = "Dockerfile"
 
-# 健康检查（可选，Railway 会自动探测端口）
-[deploy.healthcheck]
-  path = "/"
-  timeout = 30
+# 健康检查与启动端口（Railway 自动注入 $PORT，Dockerfile 内固定 8000）
+[deploy]
+  healthcheckPath = "/"
+  healthcheckTimeout = 30
+  restartPolicyType = "ON_FAILURE"

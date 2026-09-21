@@ -6,11 +6,13 @@ Whither 最小 Web Demo（P1-2）
 启动（项目根目录）:
   E:\\conda_envs\\langchain\\python.exe -m uvicorn backend.app.main:app --port 8000
 """
+import os
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from langchain_core.messages import AIMessageChunk
@@ -39,6 +41,24 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Whither", lifespan=lifespan)
+
+# ===== 跨域 CORS（Netlify 前端 → Railway 后端分离部署必需）=====
+# 环境变量 CORS_ORIGINS 可填逗号分隔的白名单，如 https://whither.netlify.app
+# 未设置时放行所有来源（本接口不使用 Cookie，线程ID在请求体中传递，安全可接受）
+_cors_env = os.getenv("CORS_ORIGINS", "").strip()
+if _cors_env:
+    _allow_origins = [o.strip().rstrip("/") for o in _cors_env.split(",") if o.strip()]
+    _allow_credentials = True
+else:
+    _allow_origins = ["*"]
+    _allow_credentials = False
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allow_origins,
+    allow_credentials=_allow_credentials,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")

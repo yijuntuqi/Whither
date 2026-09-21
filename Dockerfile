@@ -36,7 +36,8 @@ COPY data/rag.sqlite data/rag.sqlite
 RUN mkdir -p data/exports
 
 ENV PYTHONUNBUFFERED=1
+# Railway 运行时会注入动态 $PORT；本地默认 8000。shell 形式启动以展开变量
 ENV PORT=8000
 EXPOSE 8000
 
-CMD ["python", "-m", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD python -m uvicorn backend.app.main:app --host 0.0.0.0 --port "${PORT:-8000}"

@@ -1,0 +1,10 @@
+# Netlify 前端部署配置（纯静态单文件应用，无需构建）
+[build]
+  publish = "backend/web"   # index.html + assets/ 在此目录
+  command = ""              # 无构建步骤
+
+# 任意路径回退到首页（单页应用，避免刷新 404）
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
