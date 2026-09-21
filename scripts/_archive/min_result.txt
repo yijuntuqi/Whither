@@ -1,0 +1,32 @@
+Neon 连接分步测试
+==================================================
+
+[1] DNS 解析...
+   ✅ ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech → 52.4.160.253
+[2] TCP 端口 5432...
+   ✅ 端口可达
+[3] psycopg 连接测试（15s 超时）...
+   URL: postgresql://neondb_owner:npg_lWr7PwVk4gam@ep-restless-mountain-apojzz...
+   ❌ 连接失败（90.3s）: ConnectionTimeout: connection timeout expired
+Multiple connection attempts failed. All failures were:
+- host: 'ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech', port: None, hostaddr: '35.168.64.81': connection timeout expired
+- host: 'ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech', port: None, hostaddr: '98.85.120.174': connection timeout expired
+- host: 'ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech', port: None, hostaddr: '52.4.160.253': connection timeout expired
+- host: 'ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech', port: None, hostaddr: '2600:1f18:6000:1e2d:2006:227:9d2f:8fa0': connection timeout expired
+- host: 'ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech', port: None, hostaddr: '2600:1f18:6000:1e0c:82b3:cc30:735b:5ee6': connection timeout expired
+- host: 'ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech', port: None, hostaddr: '2600:1f18:6000:1e16:6f0e:3483:524f:275b': connection timeout expired
+Traceback (most recent call last):
+  File "E:\old-new\backup\BNU_leaning\langchain\whither\scripts\min_test.py", line 43, in <module>
+    with psycopg.connect(**params) as conn:
+         ~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "D:\Applications\anaconda3\Lib\site-packages\psycopg\connection.py", line 130, in connect
+    raise new_ex.with_traceback(None)
+psycopg.errors.ConnectionTimeout: connection timeout expired
+Multiple connection attempts failed. All failures were:
+- host: 'ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech', port: None, hostaddr: '35.168.64.81': connection timeout expired
+- host: 'ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech', port: None, hostaddr: '98.85.120.174': connection timeout expired
+- host: 'ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech', port: None, hostaddr: '52.4.160.253': connection timeout expired
+- host: 'ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech', port: None, hostaddr: '2600:1f18:6000:1e2d:2006:227:9d2f:8fa0': connection timeout expired
+- host: 'ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech', port: None, hostaddr: '2600:1f18:6000:1e0c:82b3:cc30:735b:5ee6': connection timeout expired
+- host: 'ep-restless-mountain-apojzz7w.c-7.us-east-1.aws.neon.tech', port: None, hostaddr: '2600:1f18:6000:1e16:6f0e:3483:524f:275b': connection timeout expired
+
