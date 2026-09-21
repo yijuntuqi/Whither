@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+.trae/
+
+# Git
+.git/
+.gitignore
+
+# 日志和临时文件
+logs/
+*.log
+
+# 数据库（rag.sqlite 在 Dockerfile 中单独 COPY）
+data/agent_checkpoints.db
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/amap_cache.sqlite
+data/exports/
+data/probe_city/
+
+# 脚本和文档
+scripts/
+docs/
+*.md
+!requirements.txt
+
+# 临时文件
+tmp/
+*.tmp

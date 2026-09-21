@@ -58,6 +58,12 @@ class TravelRetriever:
         return conn
 
     def embed_query(self, text: str) -> list[float]:
+        provider = os.getenv("EMBEDDING_PROVIDER", "ollama").lower()
+        if provider == "dashscope":
+            return self._embed_dashscope(text)
+        return self._embed_ollama(text)
+
+    def _embed_ollama(self, text: str) -> list[float]:
         resp = httpx.post(
             f"{self.ollama_base}/api/embed",
             json={"model": self.embed_model, "input": [text[:6000]]},
@@ -65,6 +71,18 @@ class TravelRetriever:
         )
         resp.raise_for_status()
         return resp.json()["embeddings"][0]
+
+    def _embed_dashscope(self, text: str) -> list[float]:
+        """DashScope text-embedding-v2（1024维，与 bge-m3 兼容）"""
+        import dashscope
+        dashscope.api_key = os.getenv("DASHSCOPE_API_KEY", "")
+        resp = dashscope.TextEmbedding.call(
+            model=os.getenv("DASHSCOPE_EMBED_MODEL", "text-embedding-v2"),
+            input=text[:6000],
+        )
+        if resp.status_code != 200:
+            raise RuntimeError(f"DashScope embed error: {resp.message}")
+        return resp.output["embeddings"][0]["embedding"]
 
     def supported_cities(self) -> list[str]:
         """知识库覆盖的城市（按字数降序，便于子串匹配优先命中长地名）"""

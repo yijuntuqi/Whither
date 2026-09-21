@@ -1,0 +1,10 @@
+[deploy]
+  runtime = "python"
+  
+[build]
+  dockerfilePath = "Dockerfile"
+
+# 健康检查（可选，Railway 会自动探测端口）
+[deploy.healthcheck]
+  path = "/"
+  timeout = 30
