@@ -46,6 +46,10 @@ async def index():
     return FileResponse(WEB_DIR / "index.html")
 
 
+# 静态资源：logo 等图片
+app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
+
+
 # PDF 下载：暴露 data/exports/（StaticFiles 内置目录穿越防护，不允许越界访问）
 EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/exports", StaticFiles(directory=str(EXPORTS_DIR)), name="exports")

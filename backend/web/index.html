@@ -29,8 +29,9 @@
   header .logo {
     width: 38px; height: 38px; border-radius: 10px;
     background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
-    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
     box-shadow: 0 2px 8px rgba(14,124,123,.3);
+    padding: 4px;
   }
   header h1 { font-size: 17px; font-weight: 700; }
   header h1 small { font-weight: 400; color: var(--sub); font-size: 12px; margin-left: 4px; }
@@ -53,11 +54,12 @@
     animation: fadeInUp .6s ease;
   }
   .hero-icon {
-    width: 80px; height: 80px; margin: 0 auto 18px; border-radius: 24px;
+    width: 96px; height: 96px; margin: 0 auto 18px; border-radius: 24px;
     background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
-    display: flex; align-items: center; justify-content: center; font-size: 40px;
+    display: flex; align-items: center; justify-content: center;
     box-shadow: 0 8px 32px rgba(14,124,123,.25);
     animation: floatIcon 3s ease-in-out infinite;
+    padding: 10px;
   }
   @keyframes floatIcon { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
   .hero h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: var(--ink); }
@@ -224,7 +226,7 @@
 <div class="float-deco f3">🧳</div>
 
 <header>
-  <span class="logo">🧭</span>
+  <img class="logo" src="/static/whither-logo.svg" alt="Whither">
   <h1>Whither <small>· 何之旅行规划助手</small></h1>
   <span class="sid" id="sid"><span class="status-dot"></span>在线</span>
 </header>
@@ -342,7 +344,7 @@ function showHero() {
   hero.className = 'hero';
   hero.id = 'hero';
   hero.innerHTML = `
-    <div class="hero-icon">🧭</div>
+    <img class="hero-icon" src="/static/whither-logo.svg" alt="Whither">
     <h2>你好，我是 Whither</h2>
     <p>你的智能旅行规划助手 · 覆盖国内 107 城<br>帮你规划行程、查天气、查车票、生成 PDF 手册</p>
     <div class="quick-start"></div>
@@ -413,8 +415,11 @@ function addMessage(role, text) {
   }
   const row = document.createElement('div');
   row.className = 'msg ' + role;
+  const avatarContent = role === 'user'
+    ? '🧑'
+    : '<img src="/static/whither-logo.svg" alt="Whither" style="width:20px;height:20px">';
   row.innerHTML =
-    '<div class="avatar">' + (role === 'user' ? '🧑' : '🧭') + '</div>' +
+    '<div class="avatar">' + avatarContent + '</div>' +
     '<div class="bubble"></div>';
   const bubble = row.querySelector('.bubble');
   if (role === 'user') bubble.textContent = text;
