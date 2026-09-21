@@ -73,11 +73,11 @@ class TravelRetriever:
         return resp.json()["embeddings"][0]
 
     def _embed_dashscope(self, text: str) -> list[float]:
-        """DashScope text-embedding-v2（1024维，与 bge-m3 兼容）"""
+        """DashScope embedding（默认 qwen3.7-text-embedding，1024维，与 bge-m3 兼容）"""
         import dashscope
         dashscope.api_key = os.getenv("DASHSCOPE_API_KEY", "")
         resp = dashscope.TextEmbedding.call(
-            model=os.getenv("DASHSCOPE_EMBED_MODEL", "text-embedding-v2"),
+            model=os.getenv("DASHSCOPE_EMBED_MODEL", "qwen3.7-text-embedding"),
             input=text[:6000],
         )
         if resp.status_code != 200:

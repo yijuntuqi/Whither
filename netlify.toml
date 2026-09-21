@@ -1,7 +1,9 @@
 # Netlify 前端部署配置（纯静态单文件应用，无需构建）
+# command 必须是一个非空的 shell 命令，否则 Netlify 会自动检测到根目录 requirements.txt
+# 并尝试把它当作 Python 项目跑 pip install（导致 unstructured 版本冲突报错）
 [build]
-  publish = "backend/web"   # index.html + assets/ 在此目录
-  command = ""              # 无构建步骤
+  publish = "backend/web"        # index.html + assets/ 在此目录
+  command = "echo 'static site, no build step needed'"
 
 # 任意路径回退到首页（单页应用，避免刷新 404）
 [[redirects]]

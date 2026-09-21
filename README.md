@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
   <img src="whither-logo.svg" width="120" alt="Whither Logo">
   <h1>Whither · 何之</h1>
   <p><strong>智能旅行规划助手</strong> — 基于 LangChain + RAG 的全栈旅行规划 Agent</p>
@@ -31,7 +31,7 @@
 |---|---|
 | Agent 框架 | LangChain 1.x + LangGraph |
 | LLM | OpenAI 协议（chatanywhere）/ Ollama (qwen2.5:7b) |
-| Embedding | Ollama bge-m3 / DashScope text-embedding-v2（1024 维） |
+| Embedding | Ollama bge-m3 / DashScope qwen3.7-text-embedding（1024 维） |
 | RAG | SQLite + 内存矩阵缓存（cosine 相似度） |
 | 联网搜索 | Tavily |
 | 火车票 | 12306 MCP (npx) |
@@ -212,7 +212,7 @@ whither/
 | `OLLAMA_MODEL` | `qwen2.5:7b` | Ollama 模型 |
 | `EMBEDDING_PROVIDER` | `ollama` | Embedding：`ollama` / `dashscope` |
 | `DASHSCOPE_API_KEY` | — | 阿里云 DashScope Key |
-| `DASHSCOPE_EMBED_MODEL` | `text-embedding-v2` | DashScope 模型 |
+| `DASHSCOPE_EMBED_MODEL` | `qwen3.7-text-embedding` | DashScope 模型 |
 | `TAVILY_API_KEY` | — | Tavily 联网搜索 Key |
 | `AMAP_MCP_URL` | — | 高德 MCP URL（留空则降级） |
 | `CORS_ORIGINS` | 空（`*`） | 跨域白名单，逗号分隔，如 `https://whither.netlify.app` |
@@ -220,7 +220,7 @@ whither/
 
 ## 开发说明
 
-- **Embedding 切换**：开发用 Ollama（本地 bge-m3），部署用 DashScope（text-embedding-v2，1024 维兼容）
+- **Embedding 切换**：开发用 Ollama（本地 bge-m3），部署用 DashScope（qwen3.7-text-embedding，1024 维兼容）
 - **MCP 降级**：12306/高德 MCP 不可用时自动降级，不影响核心功能
 - **首站逻辑**：`first_stop_hotel=true` 时 PDF 去掉绝对时间，只显景点间隔
 
