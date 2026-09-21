@@ -46,8 +46,8 @@ async def index():
     return FileResponse(WEB_DIR / "index.html")
 
 
-# 静态资源：logo 等图片
-app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
+# 静态资源：logo 等（web/assets 目录，与 Netlify 部署目录结构一致）
+app.mount("/assets", StaticFiles(directory=str(WEB_DIR / "assets")), name="assets")
 
 
 # PDF 下载：暴露 data/exports/（StaticFiles 内置目录穿越防护，不允许越界访问）
