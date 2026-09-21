@@ -5,22 +5,25 @@
 
 FROM python:3.11-slim
 
-# 系统依赖：中文字体 + Playwright 依赖 + Node.js(npx)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# pip 国内镜像源（默认清华源，可用 --build-arg PIP_INDEX_URL= 覆盖）
+ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ENV PIP_INDEX_URL=${PIP_INDEX_URL}
+
+# 系统依赖：中文字体 + Playwright 依赖 + Node.js/npm（Debian 仓库自带 Node 20，无需 NodeSource）
+RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/*.sources 2>/dev/null; \
+    apt-get update && apt-get install -y --no-install-recommends \
     fonts-noto-cjk fonts-noto-cjk-extra \
-    libnss3 libnspr3 libatk1.0-0 libatk-bridge2.0-0 \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
     libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
-    libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 \
-    curl \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
+    libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 \
+    nodejs npm ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# 先装 Python 依赖（利用 Docker 层缓存）
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
+# 先装运行时 Python 依赖（精简版，不含爬虫/OCR 重型依赖）
+COPY requirements-runtime.txt .
+RUN pip install --no-cache-dir -r requirements-runtime.txt \
     && playwright install chromium
 
 # 复制项目代码
