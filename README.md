@@ -103,32 +103,67 @@ python -m uvicorn backend.app.main:app --port 8000
 
 ## 部署
 
-### 后端（Railway）
+> 推荐顺序：**先部署 Railway 拿到后端域名，再部署 Netlify，最后在页面右上角 ⚙ 里填入后端域名**。
+> 全程使用各平台免费额度即可。
 
-仓库已包含 `Dockerfile` 和 `railway.toml`，Railway 会自动构建：
+### 第 1 步：后端部署到 Railway
 
-1. 在 [Railway](https://railway.app) 创建项目，连接 GitHub 仓库
-2. 设置环境变量（见 `.env.example`）：
-   - `EMBEDDING_PROVIDER=dashscope` + `DASHSCOPE_API_KEY`
-   - `LLM_PROVIDER=openai` + `OPENAI_API_KEY` + `OPENAI_API_BASE`
-   - `TAVILY_API_KEY` + `AMAP_MCP_URL`
-3. 部署完成后获得 Railway 域名
+仓库已含 `Dockerfile` 与 `railway.toml`（指定 Dockerfile 构建），启动命令会自动读取 Railway 注入的 `$PORT`，无需手动配置端口。
 
-### 前端（Netlify）
+1. 打开 [Railway](https://railway.app)，用 GitHub 登录 → **New Project → Deploy from repo**，选择本仓库
+2. 进入 **Variables** 标签，逐个添加环境变量（见 `.env.example`）：
 
-前端是单文件 `backend/web/index.html`，可直接部署到 Netlify：
+   | 变量 | 值 |
+   |---|---|
+   | `EMBEDDING_PROVIDER` | `dashscope` |
+   | `DASHSCOPE_API_KEY` | 你的阿里云百炼 Key |
+   | `LLM_PROVIDER` | `openai` |
+   | `OPENAI_API_KEY` | 你的 API Key |
+   | `OPENAI_API_BASE` | 如 `https://api.chatanywhere.tech/v1` |
+   | `LLM_MODEL` | 如 `gpt-4o-mini` |
+   | `TAVILY_API_KEY` | 你的 Tavily Key |
+   | `AMAP_MCP_URL` | `https://mcp.amap.com/mcp?key=你的KEY`（没有可留空降级） |
+   | `CORS_ORIGINS` | 可留空（默认放行所有来源）；第 2 步拿到 Netlify 域名后可填它做白名单 |
 
-1. 在 [Netlify](https://netlify.com) 拖入 `index.html`
-2. 或将仓库部署，构建目录设为 `backend/web`
-3. 部署后修改 `index.html` 中的 API 地址为 Railway 后端域名
+3. 等待 **Build → Deploy** 完成（首次构建约 5–10 分钟，含 Playwright Chromium）
+4. 在 **Settings → Networking → Generate Domain** 生成公网域名，形如 `https://whither-production.up.railway.app`
+5. 打开该域名确认页面 200，**复制这个域名**备用
 
-### Docker 本地构建
+### 第 2 步：前端部署到 Netlify
+
+前端是纯静态目录 `backend/web`（含 `index.html` 和 `assets/`），仓库根目录的 `netlify.toml` 已把发布目录指向它，无需构建命令。
+
+1. 打开 [Netlify](https://app.netlify.com)，用 GitHub 登录 → **Add new site → Import an existing project**，选择本仓库
+2. Netlify 自动识别 `netlify.toml`（Publish directory = `backend/web`，Build command 留空）→ **Deploy**
+3. 部署完成后获得域名，形如 `https://whither.netlify.app`，打开确认页面与 logo 正常
+
+### 第 3 步：把前端指向 Railway 后端
+
+1. 在 Netlify 站点页面，点右上角 **⚙（后端设置）**
+2. 粘贴第 1 步的 Railway 域名（如 `https://whither-production.up.railway.app`）→ **保存**
+3. 刷新页面，发条消息验证：出现工具调用提示、流式回复、PDF 卡片即为成功
+   - 设置只存在浏览器本地（localStorage），换设备/浏览器需再设一次
+
+### （可选）推送到 Docker Hub
+
+```bash
+docker login                       # 按提示输入 Docker Hub 账号密码
+docker build -t whither:latest .
+docker tag whither:latest <你的Docker用户名>/whither:latest
+docker push <你的Docker用户名>/whither:latest
+```
+
+### （可选）自定义 Hero 头图
+
+把一张 16:9 旅行风景图命名为 `hero.jpg`，放到 `backend/web/assets/` 目录即可自动显示；不放则使用默认青绿渐变背景（页面已内置兜底，不会出现破图）。
+
+### Docker 本地构建与运行
 
 ```bash
 # 构建镜像
 docker build -t whither:latest .
 
-# 运行容器
+# 运行容器（本地默认 8000 端口；-e PORT 可改，模拟 Railway）
 docker run -p 8000:8000 --env-file .env whither:latest
 ```
 
@@ -150,13 +185,15 @@ whither/
 │   │   │   └── retriever.py # SQLite 向量检索器
 │   │   └── main.py          # FastAPI 入口
 │   ├── web/
-│   │   └── index.html       # 前端单页应用
+│   │   ├── index.html       # 前端单页应用
+│   │   └── assets/          # logo、hero.jpg 等静态资源
 │   └── data/                # 运行时数据（SQLite/导出）
 ├── data/
 │   └── rag.sqlite           # 知识库向量库（4288 条）
 ├── scripts/                 # 爬虫/OCR/向量化脚本
 ├── Dockerfile               # Docker 构建
 ├── railway.toml             # Railway 部署配置
+├── netlify.toml             # Netlify 部署配置
 ├── .env.example             # 环境变量模板
 ├── requirements.txt         # Python 依赖
 ├── whither-logo.svg         # Logo
@@ -178,6 +215,7 @@ whither/
 | `DASHSCOPE_EMBED_MODEL` | `text-embedding-v2` | DashScope 模型 |
 | `TAVILY_API_KEY` | — | Tavily 联网搜索 Key |
 | `AMAP_MCP_URL` | — | 高德 MCP URL（留空则降级） |
+| `CORS_ORIGINS` | 空（`*`） | 跨域白名单，逗号分隔，如 `https://whither.netlify.app` |
 | `AGENT_CHECKPOINT_DB` | `agent_checkpoints.db` | 会话持久化 DB |
 
 ## 开发说明
