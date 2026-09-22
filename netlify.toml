@@ -3,7 +3,7 @@
 # 并尝试把它当作 Python 项目跑 pip install（导致 unstructured 版本冲突报错）
 [build]
   publish = "backend/web"        # index.html + assets/ 在此目录
-  command = "echo 'static site, no build step needed'"
+  command = "echo 'skip python build'"
 
 # 任意路径回退到首页（单页应用，避免刷新 404）
 [[redirects]]
