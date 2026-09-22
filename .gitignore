@@ -37,6 +37,7 @@ data/*.db-wal
 data/*.sqlite
 data/*.sqlite-shm
 data/*.sqlite-wal
+!data/rag.sqlite
 data/pdf_cid_map.json
 logs/
 !data/pdfs/.gitkeep
