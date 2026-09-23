@@ -159,7 +159,9 @@ def export_itinerary_pdf(itinerary_json: str) -> str:
     except _json.JSONDecodeError as e:
         return f"itinerary JSON 解析失败: {e}。请传完整的 JSON 字符串（不要带 ``` 围栏）。"
     pdf_path = generate_pdf(data)
-    return f"✅ PDF 手册已生成: {pdf_path}"
+    # 只返回相对路径（data/exports/xxx.pdf），禁止返回容器绝对路径，
+    # 以免 LLM 把它包装成 sandbox:// 协议导致前端无法下载。
+    return f"✅ PDF 手册已生成: data/exports/{pdf_path.name}"
 
 
 # ============ 景点间交通（高德 MCP 封装） ============

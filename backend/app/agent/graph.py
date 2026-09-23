@@ -158,22 +158,25 @@ SYSTEM_PROMPT = _SYSTEM_TAIL.replace(
 )
 
 
-def build_model():
-    provider = os.getenv("LLM_PROVIDER", "openai").lower()
-    if provider == "ollama":
+def build_model(overrides=None):
+    """构建 LLM。overrides 为可选 dict：用户自带 Key 时覆盖环境变量。
+    支持键：llm_provider / api_key / api_base / llm_model / ollama_base_url / ollama_model / temperature"""
+    if not overrides:
+        overrides = {}
+    provider = (overrides.get("llm_provider") or os.getenv("LLM_PROVIDER", "openai")).lower()
+    if provider in ("ollama", "ollama2"):
         from langchain_ollama import ChatOllama
         return ChatOllama(
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-            model=os.getenv("OLLAMA_MODEL", "qwen2.5:7b"),
-            # 小模型工具选择对温度敏感，低温显著减少选错工具
-            temperature=float(os.getenv("OLLAMA_TEMPERATURE", "0.2")),
+            base_url=overrides.get("ollama_base_url") or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+            model=overrides.get("ollama_model") or os.getenv("OLLAMA_MODEL", "qwen2.5:7b"),
+            temperature=float(overrides.get("temperature") or os.getenv("OLLAMA_TEMPERATURE", "0.2")),
         )
     from langchain_openai import ChatOpenAI
     return ChatOpenAI(
-        api_key=os.getenv("OPENAI_API_KEY"),
-        base_url=os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1"),
-        model=os.getenv("LLM_MODEL", "gpt-4o-mini"),
-        temperature=0.7,
+        api_key=overrides.get("api_key") or os.getenv("OPENAI_API_KEY"),
+        base_url=overrides.get("api_base") or os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1"),
+        model=overrides.get("llm_model") or os.getenv("LLM_MODEL", "gpt-4o-mini"),
+        temperature=float(overrides.get("temperature") or os.getenv("LLM_TEMPERATURE", "0.7")),
     )
 
 
@@ -194,9 +197,10 @@ async def create_default_checkpointer():
     return AsyncSqliteSaver(conn)
 
 
-async def build_agent(checkpointer=None):
+async def build_agent(checkpointer=None, model=None):
     """构建 Whither agent（异步：需加载 12306 MCP 工具）。
-    checkpointer 默认 SqliteSaver 持久化（进程重启后会话可恢复）。"""
+    checkpointer 默认 SqliteSaver 持久化（进程重启后会话可恢复）。
+    model 可选：用户自带 API Key 时传 build_model(overrides) 的结果。"""
     tools = list(M1_TOOLS)
 
     from backend.app.agent.mcp_12306 import get_12306_tools
@@ -212,7 +216,7 @@ async def build_agent(checkpointer=None):
         checkpointer = await create_default_checkpointer()
 
     return create_agent(
-        model=build_model(),
+        model=model or build_model(),
         tools=tools,
         system_prompt=SYSTEM_PROMPT,
         checkpointer=checkpointer,

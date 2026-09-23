@@ -37,7 +37,7 @@
       var(--bg);
   }
   .ambient-bg-img { position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: cover; opacity: .22; filter: saturate(.8); }
+    object-fit: cover; opacity: .20; filter: saturate(.8); }
   .ambient-bg-overlay { position: absolute; inset: 0;
     background: linear-gradient(180deg, rgba(238,243,244,.72), rgba(238,243,244,.88)); }
   .ambient svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
@@ -68,21 +68,20 @@
     justify-content: center; transition: all .2s; color: var(--sub); }
   .icon-btn:hover { border-color: var(--brand); color: var(--brand); }
 
-  /* 设置弹层 */
-  .settings-pop { position: absolute; top: 58px; right: 22px; width: 300px; z-index: 50;
+  /* 自带 Key 弹层 */
+  .keypop { position: absolute; top: 58px; right: 22px; width: 320px; z-index: 50;
     background: #fff; border: 1px solid var(--line); border-radius: 14px;
     box-shadow: var(--shadow-lg); padding: 16px 18px; display: none; }
-  .settings-pop.open { display: block; animation: popIn .2s ease; }
+  .keypop.open { display: block; animation: popIn .2s ease; }
   @keyframes popIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-  .settings-pop h4 { font-size: 13.5px; margin-bottom: 6px; }
-  .settings-pop p { font-size: 11.5px; color: var(--sub); margin-bottom: 8px; line-height: 1.5; }
-  .settings-pop input { width: 100%; border: 1px solid var(--line); border-radius: 9px;
+  .keypop h4 { font-size: 13.5px; margin-bottom: 8px; }
+  .keypop input { width: 100%; border: 1px solid var(--line); border-radius: 9px;
     padding: 8px 11px; font-size: 12.5px; font-family: inherit; }
-  .settings-pop input:focus { outline: none; border-color: var(--brand); }
-  .settings-pop .sp-actions { display: flex; gap: 8px; margin-top: 10px; }
-  .settings-pop .sp-actions button { flex: 1; border-radius: 9px; padding: 7px; font-size: 12.5px;
-    cursor: pointer; border: 1px solid var(--line); background: #fff; }
-  .settings-pop .sp-actions .sp-save { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .keypop input:focus { outline: none; border-color: var(--brand); }
+  .keypop .keyrow { display: flex; gap: 8px; margin-top: 10px; }
+  .keypop .keyrow button { flex: 1; border-radius: 9px; padding: 7px; font-size: 12.5px; cursor: pointer; }
+  .keypop .keyrow .kb-clear { border: 1px solid var(--line); background: #fff; }
+  .keypop .keyrow .kb-save { border: none; background: var(--brand); color: #fff; }
 
   /* 聊天区 */
   main#chat { flex:1; overflow-y: auto; padding: 22px 16px 8px; position: relative; z-index: 10; }
@@ -223,7 +222,8 @@
 <body>
 
 <div class="ambient">
-  <img class="ambient-bg-img" src="assets/hero-bg.jpg" alt="" onerror="this.remove()">
+  <video class="ambient-bg-img" autoplay muted loop playsinline preload="auto"
+    onerror="this.remove()"><source src="assets/hero-bg.mp4" type="video/mp4"></video>
   <div class="ambient-bg-overlay"></div>
   <svg viewBox="0 0 1440 900" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="#0e7c7b" stroke-width="1">
@@ -242,8 +242,24 @@
   <h1>Whither <small>何之旅行规划助手</small></h1>
   <div class="header-right">
     <span class="sid" id="sid"><span class="status-dot"></span>在线</span>
+    <button class="icon-btn" id="keyBtn" title="设置你的模型 Key">🔑</button>
   </div>
 </header>
+
+<div class="keypop" id="keyPop">
+  <h4>🔑 使用你自己的模型 Key</h4>
+  <p style="font-size:11.5px;color:var(--sub);line-height:1.5;margin-bottom:8px;">可选。不填则使用站方提供的额度；填了自己的 OpenAI 兼容 Key 后，你的提问将走你自己的额度。</p>
+  <label style="font-size:11.5px;font-weight:600;">OpenAI API Key</label>
+  <input type="password" id="llmKey" placeholder="sk-..." autocomplete="off">
+  <label style="font-size:11.5px;font-weight:600;display:block;margin-top:8px;">API 地址（可选）</label>
+  <input type="text" id="llmBase" placeholder="https://api.openai.com/v1" autocomplete="off">
+  <label style="font-size:11.5px;font-weight:600;display:block;margin-top:8px;">模型名（可选）</label>
+  <input type="text" id="llmModel" placeholder="gpt-4o-mini" autocomplete="off">
+  <div class="keyrow">
+    <button class="kb-clear" id="keyClear">清除</button>
+    <button class="kb-save" id="keySave">保存</button>
+  </div>
+</div>
 
 <main id="chat">
   <div class="wrap" id="messages"></div>
@@ -472,10 +488,14 @@ async function send() {
   let answer = '', chips = null;
 
   try {
+    // 用户自带的 LLM Key（存于 localStorage），可选随请求发送
+    const apiKeys = readUserKeys();
+    const body = { message: text, thread_id: threadId };
+    if (apiKeys) body.api_keys = apiKeys;
     const resp = await fetch(apiUrl('/chat'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, thread_id: threadId }),
+      body: JSON.stringify(body),
     });
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
@@ -568,6 +588,52 @@ document.getElementById('prefSend').addEventListener('click', () => {
   $prefToggle.textContent = '🎯 设置出行偏好';
   autoGrow();
   $input.focus();
+});
+
+/* ===== 自带模型 Key ===== */
+function readUserKeys() {
+  const k = localStorage.getItem('whither_user_llm_api_key');
+  const base = localStorage.getItem('whither_user_llm_api_base');
+  const model = localStorage.getItem('whither_user_llm_model');
+  const v = { llm_api_key: k || '' };
+  if (base) v.llm_api_base = base;
+  if (model) v.llm_model = model;
+  return v && v.llm_api_key ? v : null;
+}
+const $keyBtn = document.getElementById('keyBtn');
+const $keyPop = document.getElementById('keyPop');
+const $llmKey = document.getElementById('llmKey');
+const $llmBase = document.getElementById('llmBase');
+const $llmModel = document.getElementById('llmModel');
+function loadKeyInputs() {
+  $llmKey.value = localStorage.getItem('whither_user_llm_api_key') || '';
+  $llmBase.value = localStorage.getItem('whither_user_llm_api_base') || '';
+  $llmModel.value = localStorage.getItem('whither_user_llm_model') || '';
+}
+$keyBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  loadKeyInputs();
+  $keyPop.classList.toggle('open');
+});
+document.addEventListener('click', e => {
+  if (!$keyPop.contains(e.target) && e.target !== $keyBtn) $keyPop.classList.remove('open');
+});
+document.getElementById('keySave').addEventListener('click', () => {
+  const k = $llmKey.value.trim();
+  if (k) localStorage.setItem('whither_user_llm_api_key', k);
+  else localStorage.removeItem('whither_user_llm_api_key');
+  const base = $llmBase.value.trim();
+  if (base) localStorage.setItem('whither_user_llm_api_base', base); else localStorage.removeItem('whither_user_llm_api_base');
+  const model = $llmModel.value.trim();
+  if (model) localStorage.setItem('whither_user_llm_model', model); else localStorage.removeItem('whither_user_llm_model');
+  $keyPop.classList.remove('open');
+});
+document.getElementById('keyClear').addEventListener('click', () => {
+  localStorage.removeItem('whither_user_llm_api_key');
+  localStorage.removeItem('whither_user_llm_api_base');
+  localStorage.removeItem('whither_user_llm_model');
+  loadKeyInputs();
+  $keyPop.classList.remove('open');
 });
 
 showHero();

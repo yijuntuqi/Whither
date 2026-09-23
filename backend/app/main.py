@@ -6,6 +6,8 @@ Whither 最小 Web Demo（P1-2）
 启动（项目根目录）:
   E:\\conda_envs\\langchain\\python.exe -m uvicorn backend.app.main:app --port 8000
 """
+import hashlib
+import json as _json
 import os
 import uuid
 from contextlib import asynccontextmanager
@@ -20,7 +22,7 @@ from loguru import logger
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
-from backend.app.agent.graph import build_agent
+from backend.app.agent.graph import build_agent, build_model
 
 # backend/web/index.html（本文件在 backend/app/main.py）
 WEB_DIR = Path(__file__).resolve().parents[1] / "web"
@@ -31,16 +33,21 @@ EXPORTS_DIR = Path(__file__).resolve().parents[2] / "data" / "exports"
 class ChatRequest(BaseModel):
     message: str
     thread_id: str | None = None
+    # 用户可选自带 LLM API Key（OPENAI_API_KEY 等），避免消耗开发者额度
+    api_keys: dict[str, str] | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Agent（含 MCP 工具拉起）只构建一次，thread_id 区分会话
     app.state.agent = await build_agent()
+    # 用户自带 Key 时按 key 分组缓存 Agent，避免每个请求都重新拉起 MCP
+    app.state.agent_cache: dict[str, object] = {}
     yield
 
 
 app = FastAPI(title="Whither", lifespan=lifespan)
+_SSE_APP = app  # 供 _resolve_agent 访问 app.state
 
 # ===== 跨域 CORS（Netlify 前端 → Railway 后端分离部署必需）=====
 # 环境变量 CORS_ORIGINS 可填逗号分隔的白名单，如 https://whither.netlify.app
@@ -93,9 +100,36 @@ async def download_pdf(filename: str):
     )
 
 
+def _key_overrides(api_keys: dict[str, str]) -> dict | None:
+    """把前端传来的 api_keys 映射成 build_model 的 overrides；只有填了 LLM Key 才算用户自带。"""
+    llm_key = (api_keys.get("llm_api_key") or "").strip()
+    if not llm_key:
+        return None
+    return {
+        "llm_provider": "openai",
+        "api_key": llm_key,
+        "api_base": (api_keys.get("llm_api_base") or "").strip()
+                    or os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1"),
+        "llm_model": (api_keys.get("llm_model") or "").strip()
+                     or os.getenv("LLM_MODEL", "gpt-4o-mini"),
+    }
+
+
+async def _resolve_agent(api_keys: dict[str, str] | None):
+    """无 api_keys 或没填 LLM Key → 开发者默认 Agent；填了 LLM Key → 按 key 哈希缓存用户自带的 Agent。"""
+    overrides = _key_overrides(api_keys) if api_keys else None
+    if overrides is None:
+        return _SSE_APP.state.agent
+    h = hashlib.sha256(_json.dumps(overrides, sort_keys=True).encode()).hexdigest()[:16]
+    cache = _SSE_APP.state.agent_cache
+    if h not in cache:
+        cache[h] = await build_agent(model=build_model(overrides))
+    return cache[h]
+
+
 @app.post("/chat")
 async def chat(req: ChatRequest):
-    agent = app.state.agent
+    agent = await _resolve_agent(req.api_keys)
     thread_id = req.thread_id or uuid.uuid4().hex[:12]
     config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 80}
 
