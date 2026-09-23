@@ -24,18 +24,67 @@ BRAND = {
     "hotel": "#8e6bbf",
 }
 
-# 行程 item type → 颜色/图标
+# 行程 item type → 颜色/图标（图标为内联 SVG，容器无彩色 emoji 字体也不会出现豆腐块）
 TYPE_STYLE = {
-    "交通": ("#0e7c7b", "🚄"),
-    "景点": ("#f4795b", "📍"),
-    "餐饮": ("#e6a23c", "🍜"),
-    "住宿": ("#8e6bbf", "🏨"),
-    "购物": ("#d81b60", "🛍️"),
-    "自由": ("#6c757d", "🍀"),
+    "交通": ("#0e7c7b", "train"),
+    "景点": ("#f4795b", "pin"),
+    "餐饮": ("#e6a23c", "bowl"),
+    "住宿": ("#8e6bbf", "bed"),
+    "购物": ("#d81b60", "bag"),
+    "自由": ("#6c757d", "compass"),
 }
 
 TYPE_TO_BUDGET_CAT = {"交通": "交通", "景点": "门票", "餐饮": "餐饮", "住宿": "住宿",
                       "购物": "其他", "自由": "其他"}
+
+# ===== 内联 SVG 图标（24x24，线性风格，currentColor）=====
+_SVG_PATHS = {
+    "train": ('<rect x="5" y="3" width="14" height="14" rx="3"/>'
+              '<path d="M5 11h14"/><path d="M9 6.5h6"/>'
+              '<circle cx="8.5" cy="14.5" r=".8" fill="currentColor" stroke="none"/>'
+              '<circle cx="15.5" cy="14.5" r=".8" fill="currentColor" stroke="none"/>'
+              '<path d="M7 20l-2 1.5M17 20l2 1.5"/>'),
+    "pin": ('<path d="M12 21s-7-6.3-7-11a7 7 0 1 1 14 0c0 4.7-7 11-7 11z"/>'
+            '<circle cx="12" cy="10" r="2.5"/>'),
+    "bowl": ('<path d="M4 11h16a8 8 0 0 1-16 0z"/><path d="M8 11V4"/>'
+             '<path d="M11 8V5"/>'),
+    "bed": ('<path d="M3 18v-7"/><path d="M3 13h18v5"/>'
+            '<path d="M7 13v-3a2 2 0 0 1 2-2h6"/>'),
+    "bag": ('<path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 0 1 6 0"/>'),
+    "compass": ('<circle cx="12" cy="12" r="9"/>'
+                '<path d="M15.5 8.5l-2 5-5 2 2-5z"/>'),
+    "sun": ('<circle cx="12" cy="12" r="4"/>'
+            '<path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4'
+            'M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
+    "cloud": ('<path d="M7 18h10a4.5 4.5 0 0 0 1-8.9A6 6 0 0 0 6.5 11 4 4 0 0 0 7 18z"/>'),
+    "cloud-rain": ('<path d="M7 15h10a4.5 4.5 0 0 0 1-8.9A6 6 0 0 0 6.5 8 4 4 0 0 0 7 15z"/>'
+                   '<path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>'),
+    "thermometer": ('<path d="M10 13.5V5a2 2 0 1 1 4 0v8.5a4 4 0 1 1-4 0z"/>'),
+    "bulb": ('<path d="M9 18h6M10 21h4"/>'
+             '<path d="M12 3a6 6 0 0 0-3.5 10.9c.7.6 1 1.2 1 2.1h5c0-.9.4-1.5 1-2.1A6 6 0 0 0 12 3z"/>'),
+    "calendar": ('<rect x="3" y="5" width="18" height="16" rx="2"/>'
+                 '<path d="M3 9.5h18M8 3v4M16 3v4"/>'),
+    "wallet": ('<path d="M3 7a2 2 0 0 1 2-2h12v3"/><path d="M3 7v10a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9H5"/>'
+               '<path d="M16.5 13h.01"/>'),
+    "package": ('<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/>'
+                '<path d="M12 13v8"/>'),
+    "check-square": ('<rect x="4" y="4" width="16" height="16" rx="2"/>'
+                     '<path d="M8.5 12.5l2.5 2.5 4.5-5"/>'),
+    "target": ('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/>'
+               '<circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>'),
+    "building": ('<path d="M3 21V8l6-4v17"/><path d="M9 21V11h12v10"/>'
+                 '<path d="M14.5 14h.01M18 14h.01M14.5 17.5h.01M18 17.5h.01"/>'),
+    "route": ('<circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/>'
+              '<path d="M8 18h6a3 3 0 0 0 0-6H10a3 3 0 0 1 0-6h6"/>'),
+    "clock": ('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>'),
+}
+
+
+def _svg(name: str, size: int = 15, color: str = "currentColor", sw: float | int = 2) -> str:
+    body = _SVG_PATHS.get(name, "")
+    return (f'<svg class="ic" width="{size}" height="{size}" viewBox="0 0 24 24" '
+            f'fill="none" stroke="{color}" stroke-width="{sw}" '
+            f'stroke-linecap="round" stroke-linejoin="round">{body}</svg>')
 
 
 def _esc(s) -> str:
@@ -97,22 +146,23 @@ def _weather_card(weather) -> str:
     cond = weather.get("condition", "")
     rain = weather.get("rain")
     tip = weather.get("tip", "")
-    if rain:
-        icon = "🌧️"
+    if rain or (cond and ("雨" in cond or "雪" in cond)):
+        icon_name = "cloud-rain"
     elif cond and "多云" in cond:
-        icon = "⛅"
-    elif cond:
-        icon = "☀️"
+        icon_name = "cloud"
+    elif cond and "晴" in cond:
+        icon_name = "sun"
     else:
-        icon = "🌡️"
+        icon_name = "thermometer"
     parts = []
     if temp:
         parts.append(f'<span class="w-temp">{_esc(temp)}</span>')
     if cond:
         parts.append(f'<span class="w-cond">{_esc(cond)}</span>')
     if tip:
-        parts.append(f'<span class="w-tip">💡 {_esc(tip)}</span>')
-    return f'<div class="weather-card"><span class="w-icon">{icon}</span>{"".join(parts)}</div>'
+        parts.append(f'<span class="w-tip">{_svg("bulb", 13, BRAND["primary"])} {_esc(tip)}</span>')
+    return (f'<div class="weather-card"><span class="w-icon">'
+            f'{_svg(icon_name, 21, BRAND["primary"])}</span>{"".join(parts)}</div>')
 
 
 # ===== 酒店区块 =====
@@ -138,15 +188,18 @@ def _hotel_section(hotels) -> str:
         if checkin:
             meta_parts.append(f'<span class="h-date">入住 {_esc(checkin)}</span>')
         if addr:
-            meta_parts.append(f'<span class="h-addr">📍 {_esc(addr)}</span>')
+            meta_parts.append(
+                f'<span class="h-addr">{_svg("pin", 12, BRAND["muted"])} {_esc(addr)}</span>')
         reason_html = f'<div class="h-reason">推荐：{_esc(reason)}</div>' if reason else ""
         cards.append(
-            f'<div class="hotel-card"><div class="h-name">🏨 {_esc(name)}</div>'
+            f'<div class="hotel-card"><div class="h-name">{_svg("building", 15, BRAND["hotel"])} '
+            f'{_esc(name)}</div>'
             f'<div class="h-meta">{"".join(meta_parts)}</div>{reason_html}</div>'
         )
     if not cards:
         return ""
-    return f'<div class="hotel-section"><div class="hs-title">🏨 住宿推荐</div>{"".join(cards)}</div>'
+    return (f'<div class="hotel-section"><div class="hs-title">'
+            f'{_svg("building", 15, BRAND["hotel"])} 住宿推荐</div>{"".join(cards)}</div>')
 
 
 # ===== 12306 车次详情卡 =====
@@ -206,7 +259,8 @@ def _transit_badge(tr) -> str:
         bits.append(tr["distance"])
     if tr.get("cost"):
         bits.append(f"约{tr['cost']}元")
-    return f'<div class="transit-line">🚇 前往本站：{_esc(" · ".join(b for b in bits if b))}</div>'
+    return (f'<div class="transit-line">{_svg("route", 12, BRAND["muted"])} '
+            f'前往本站：{_esc(" · ".join(b for b in bits if b))}</div>')
 
 
 # ===== 逐日时间线 =====
@@ -217,7 +271,7 @@ def _timeline_items(items: list, first_stop_hotel: bool = False) -> str:
     """
     cards = []
     for idx, it in enumerate(items):
-        color, icon = TYPE_STYLE.get(it.get("type", ""), TYPE_STYLE["自由"])
+        color, icon_name = TYPE_STYLE.get(it.get("type", ""), TYPE_STYLE["自由"])
         cost = _fmt_cost(it.get("cost"))
         note = it.get("note") or ""
         name = it.get("name", "")
@@ -229,9 +283,10 @@ def _timeline_items(items: list, first_stop_hotel: bool = False) -> str:
             else:
                 tr = it.get("transit_from_prev") or {}
                 interval = tr.get("duration", "")
-                time_label = f"⏱ {interval}" if interval else ""
+                time_label = (f'<span class="tl-interval">{_svg("clock", 11, BRAND["muted"])} '
+                              f'{_esc(interval)}</span>' if interval else "")
         else:
-            time_label = it.get("time", "")
+            time_label = _esc(it.get("time", ""))
 
         # 12306 车次卡详情
         train_html = _train_detail(it) if it.get("type") == "交通" else ""
@@ -252,8 +307,8 @@ def _timeline_items(items: list, first_stop_hotel: bool = False) -> str:
 
         cards.append(f"""
         <div class="tl-item">
-          <div class="tl-time">{_esc(time_label)}</div>
-          <div class="tl-dot" style="background:{color}">{icon}</div>
+          <div class="tl-time">{time_label}</div>
+          <div class="tl-dot" style="background:{color}">{_svg(icon_name, 15, "#fff", 2)}</div>
           <div class="tl-card" style="border-left-color:{color}">
             {body}
           </div>
@@ -273,7 +328,9 @@ def _packing_list_html(packing) -> str:
         items = [str(p).strip() for p in packing if p]
     else:
         return ""
-    return "".join(f'<div class="pk-item">☐ {_esc(p)}</div>' for p in items if p)
+    return "".join(
+        f'<div class="pk-item">{_svg("check-square", 14, BRAND["primary"])} {_esc(p)}</div>'
+        for p in items if p)
 
 
 # ===== 偏好摘要卡 =====
@@ -300,7 +357,8 @@ def _profile_summary(data: dict) -> str:
             )
     if not chips:
         return ""
-    return f'<div class="profile-card"><div class="pf-title">🎯 出行偏好</div>{"".join(chips)}</div>'
+    return (f'<div class="profile-card"><div class="pf-title">'
+            f'{_svg("target", 15, BRAND["dark"])} 出行偏好</div>{"".join(chips)}</div>')
 
 
 # ===== 主渲染 =====
@@ -346,6 +404,8 @@ def render_html(data: dict) -> str:
 <title>{title}</title>
 <style>
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+  .ic {{ vertical-align: -.18em; flex-shrink: 0; }}
+  .tl-interval {{ display: inline-flex; align-items: center; gap: 2px; }}
   body {{ font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
          color: #2b2b2b; font-size: 11pt; line-height: 1.55; }}
   @page {{ size: A4; margin: 14mm 12mm; }}
@@ -465,10 +525,10 @@ def render_html(data: dict) -> str:
     <h1>{title}</h1>
     <div class="route"><b>{origin}</b><span class="arrow">→</span><b>{dest}</b></div>
     <div class="meta">
-      {f'<div class="chip">🗓 {start} 出发</div>' if start else ''}
-      {f'<div class="chip">💰 总预算 <b>{total_str}</b></div>' if total_str else ''}
-      <div class="chip">📦 {len(data.get('days', []))} 天</div>
-      {f'<div class="chip">🏨 首站先到酒店</div>' if first_stop_hotel else ''}
+      {f'<div class="chip">{_svg("calendar", 13, "#fff")} {start} 出发</div>' if start else ''}
+      {f'<div class="chip">{_svg("wallet", 13, "#fff")} 总预算 <b>{total_str}</b></div>' if total_str else ''}
+      <div class="chip">{_svg("package", 13, "#fff")} {len(data.get('days', []))} 天</div>
+      {f'<div class="chip">{_svg("building", 13, "#fff")} 首站先到酒店</div>' if first_stop_hotel else ''}
     </div>
   </div>
 
@@ -477,13 +537,13 @@ def render_html(data: dict) -> str:
   {''.join(days_html)}
 
   {f'''<div class="panel">
-    <h2>💰 预算明细</h2>
+    <h2>{_svg("wallet", 17, BRAND["dark"])} 预算明细</h2>
     <div class="budget-flex">{_pie_css(budget['by_category'])}</div>
     <div class="budget-total">预估总计 <b>{total_str}</b>（人均）</div>
   </div>''' if budget['by_category'] else ''}
 
   {f'''<div class="panel">
-    <h2>📦 打包清单</h2>
+    <h2>{_svg("package", 17, BRAND["dark"])} 打包清单</h2>
     <div class="pk-grid">{packing_html}</div>
   </div>''' if packing_html else ''}
 

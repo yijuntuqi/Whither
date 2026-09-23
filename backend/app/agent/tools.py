@@ -429,6 +429,67 @@ async def search_hotels(city: str, keyword: str = "") -> str:
     return "\n".join(lines)
 
 
+# M1_TOOLS 定义见文件末尾（get_weather 在下文定义）
+
+
+# ============ 权威天气查询（高德官方预报） ============
+
+@tool
+async def get_weather(city: str, date: str = "") -> str:
+    """查询城市未来 4 天官方天气预报（高德气象数据，权威可靠）。
+
+    涉及行程天气时必须用本工具，不要用 search_web_info 搜天气、不要凭记忆报气温。
+    返回天气、温度区间、风力；温度和天气状况必须逐字照抄。
+
+    Args:
+        city: 城市名，如"北京"
+        date: 可选，只关注该日期（YYYY-MM-DD）；留空返回未来 4 天全部预报
+    """
+    from backend.app.agent.mcp_amap import get_amap_tool
+
+    t_weather = get_amap_tool("maps_weather")
+    data = None
+    if t_weather:
+        try:
+            data = _mcp_parse(await t_weather.ainvoke({"city": city}))
+        except Exception:
+            data = None
+
+    lines = [f"{city} 官方天气预报（高德气象）："]
+    if isinstance(data, dict) and data.get("forecasts"):
+        forecasts = data["forecasts"]
+        for f in forecasts:
+            if date and f.get("date") != date:
+                continue
+            day_w, night_w = f.get("dayweather", ""), f.get("nightweather", "")
+            lo, hi = f.get("nighttemp", ""), f.get("daytemp", "")
+            wind = f.get("daywind", "")
+            power = f.get("daypower", "")
+            rng = f"{lo}°C~{hi}°C" if lo and hi else ""
+            lines.append(
+                f"- {f.get('date','')}：白天{day_w}，夜间{night_w}，{rng}"
+                + (f"，{wind}风{power}级" if wind and power else ""))
+        if len(lines) == 1:
+            lines.append(f"该日期不在未来4天预报范围内（官方预报仅提供未来4天），"
+                         f"可参考最近日期的趋势，远期天气请临近出发前再查。")
+        lines.append("⚠️ 天气/气温逐字照抄；超出4天的日期无法提供官方预报，"
+                     "可基于气候趋势给穿衣建议并标注不确定性。")
+        return "\n".join(lines)
+
+    # 高德不可用时降级：Tavily 联网搜，并明确标注来源为网页
+    try:
+        from langchain_tavily import TavilySearch
+        raw = TavilySearch(max_results=4).invoke(
+            {"query": f"{city} 天气预报 未来几天 温度"})
+        for r in raw.get("results", [])[:4]:
+            lines.append(f"- {r.get('title','')} ({r.get('url','')})")
+        lines.append("⚠️ 高德气象暂不可用，以上为网页搜索结果，准确性弱于官方预报，请提醒用户出行前复核。")
+        return "\n".join(lines)
+    except Exception:
+        return f"暂时无法查询{city}天气（高德气象和网页搜索均不可用），请建议用户出行前在天气App复核，不要编造气温。"
+
+
 M1_TOOLS = [search_travel_knowledge, list_supported_cities, search_web_info,
             calculate_budget, generate_packing_list, export_itinerary_pdf,
-            plan_route_between_spots, query_train_tickets, search_hotels]
+            plan_route_between_spots, query_train_tickets, search_hotels,
+            get_weather]
