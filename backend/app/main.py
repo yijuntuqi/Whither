@@ -81,6 +81,26 @@ EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/exports", StaticFiles(directory=str(EXPORTS_DIR)), name="exports")
 
 
+@app.get("/health/upstream")
+async def health_upstream():
+    """从当前容器（海外）探测 12306 官方接口连通性：用于确认车次工具可用。"""
+    import httpx
+    result = {"kyfw_12306": {"ok": False}}
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as c:
+            r = await c.get(
+                "https://kyfw.12306.cn/otn/resources/js/framework/station_name.js",
+                headers={"User-Agent": "Mozilla/5.0"})
+            result["kyfw_12306"] = {
+                "ok": r.status_code == 200 and "station_names" in r.text,
+                "http_status": r.status_code,
+                "bytes": len(r.content),
+            }
+    except Exception as e:
+        result["kyfw_12306"] = {"ok": False, "error": f"{type(e).__name__}: {e}"}
+    return result
+
+
 @app.get("/download/{filename}")
 async def download_pdf(filename: str):
     """网页端直接下载 PDF：/download/成都2日游_20260921_120000.pdf"""
