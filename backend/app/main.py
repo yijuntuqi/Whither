@@ -33,15 +33,14 @@ EXPORTS_DIR = Path(__file__).resolve().parents[2] / "data" / "exports"
 class ChatRequest(BaseModel):
     message: str
     thread_id: str | None = None
-    # 用户可选自带 LLM API Key（OPENAI_API_KEY 等），避免消耗开发者额度
+    # 用户自己的 LLM API Key（必填，本站不提供公共额度）
     api_keys: dict[str, str] | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Agent（含 MCP 工具拉起）只构建一次，thread_id 区分会话
-    app.state.agent = await build_agent()
-    # 用户自带 Key 时按 key 分组缓存 Agent，避免每个请求都重新拉起 MCP
+    # 本站不提供公共模型额度：不构建站方默认 Agent。
+    # 所有对话必须携带用户自己的 LLM Key，按 key 哈希缓存对应 Agent。
     app.state.agent_cache: dict[str, object] = {}
     yield
 
@@ -116,10 +115,14 @@ def _key_overrides(api_keys: dict[str, str]) -> dict | None:
 
 
 async def _resolve_agent(api_keys: dict[str, str] | None):
-    """无 api_keys 或没填 LLM Key → 开发者默认 Agent；填了 LLM Key → 按 key 哈希缓存用户自带的 Agent。"""
-    overrides = _key_overrides(api_keys) if api_keys else None
+    """必须自带 LLM Key：否则直接 400。合法 Key 按哈希缓存对应 Agent。"""
+    from fastapi import HTTPException
+    overrides = _key_overrides(api_keys)
     if overrides is None:
-        return _SSE_APP.state.agent
+        raise HTTPException(
+            status_code=400,
+            detail="请先点击右上角 🔑，填写你自己的模型 API Key 后再开始对话（本站不提供公共额度）",
+        )
     h = hashlib.sha256(_json.dumps(overrides, sort_keys=True).encode()).hexdigest()[:16]
     cache = _SSE_APP.state.agent_cache
     if h not in cache:
