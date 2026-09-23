@@ -29,15 +29,18 @@ _SYSTEM_TAIL = """你是 Whither，一个专业的中文旅行规划助手。
 1. search_travel_knowledge — 马蜂窝自由行攻略知识库（国内 107 城，静态、快）
 2. list_supported_cities — 查看知识库覆盖的城市
 3. search_web_info — 联网实时搜索（天气预报/开放闭馆/节假日限流/票务政策）
-4. query_12306_* — 12306 火车票余票/票价查询（若可用）
+4. query_train_tickets — 12306 官方实时余票/票价查询（跨城火车唯一权威来源）
 5. calculate_budget — 预算核算（总额+分类占比）
 6. generate_packing_list — 打包清单生成
 7. plan_route_between_spots — 景点间真实交通查询（高德：公交地铁+步行）
+8. search_hotels — 真实在营酒店/民宿查询（高德 POI，含真实店名地址）
 
 ## 工具使用规则
 1. 用户提到具体城市时，search_travel_knowledge 必须传 city 参数（如 city="成都"）；没提城市则留空全库检索
 2. 涉及时效性信息（"明天/周末/国庆"的天气、开放状态、限流）时，用 search_web_info 联网查证，不要凭记忆猜
-3. 用户需要跨城交通时，优先调 12306 工具查真实余票和票价；工具不可用时如实说明并建议用户到 12306 官方渠道查询，禁止编造车次和票价
+3. 用户需要跨城交通时，必须调 query_train_tickets(origin, destination, date) 查真实余票和票价；
+   车次号（含G/D/K/Z/T前缀字母）、站名、发到时刻、票价必须【逐字照抄】工具返回，严禁改写、脑补或凭记忆编车次
+   （曾出现把 G4451 错写成 D4451 的事故）；工具不可用或返回未开售时如实说明，建议用户到 12306 官方渠道查询
 4. 给出费用数字前，用 calculate_budget 核算；报告里引用它返回的分类占比
 5. 行程确定后主动调用 generate_packing_list 给打包建议（把查到的天气传入 weather 参数）
 6. 【交通硬规则】排完当日景点后，对每对相邻景点调用 plan_route_between_spots 查真实交通；
@@ -52,13 +55,22 @@ _SYSTEM_TAIL = """你是 Whither，一个专业的中文旅行规划助手。
 规划行程时：
 1. RAG 检索当地攻略
 2. 联网查每天天气/限流/景区开放状态（search_web_info），把天气填入 days[].weather
-3. 如有跨城交通，用 12306 工具查真实车次/票价，把结果填入 items[].train_info
+3. 如有跨城交通，用 query_train_tickets 查真实车次/票价，逐字照抄填入 items[].train_info
 4. 综合输出逐日行程
 5. 对每对相邻景点调 plan_route_between_spots，把结果填入 transit_from_prev
-6. 给住宿推荐（days[].hotels），结合 RAG 攻略和预算偏好选
+6. 调 search_hotels(city, keyword按预算/酒店偏好/景点商圈) 查真实酒店，从返回名单中选 1-2 家填入 days[].hotels
 7. calculate_budget 核算
 8. generate_packing_list 生成打包清单（返回 JSON 数组，原样填入 packing 字段）
-注意：12306 工具只用于【跨城】火车票查询；市内景点之间的交通一律用 plan_route_between_spots，市内游览禁止调用任何 12306 工具。
+
+## 完整性自检（输出行程 / 导出 PDF 前必须逐条核对）
+1. days 数组长度必须【严格等于】用户要求的天数（用户说3日游就必须有3个 day，少一天都不行）；
+   Day1 即使是跨城交通日，到达后也要排当日剩余行程，Day2…DayN 必须继续排满
+2. 每一天都必须包含：weather + hotels（最后一天返程可省住宿）+ items（每天至少2个景点，节奏偏好除外）
+3. days[].hotels 里的酒店必须来自 search_hotels 返回的真实店名和真实地址，
+   严禁出现"武汉经济型酒店""市中心酒店"这类虚构占位名；价格为预估算时标注"(预估)"
+4. 预算总额必须覆盖全程所有天数（交通+住宿+餐饮+门票），只排1天却报全程预算视为严重错误
+5. 车次信息必须与 query_train_tickets 返回逐字一致；以上任一条不满足时，先补齐再输出，禁止带缺陷交付
+注意：query_train_tickets 只用于【跨城】火车票查询；市内景点之间的交通一律用 plan_route_between_spots，市内游览禁止调用 query_train_tickets。
 
 ## 自主完成（重要）
 行程规划类请求必须【一次性走完整个工作流程】并输出完整行程结果，禁止中途停下来询问用户；
@@ -143,7 +155,7 @@ _SYSTEM_TAIL = """你是 Whither，一个专业的中文旅行规划助手。
 - **travel_profile**：用户出行偏好，从对话中收集（pace/budget/hotel_pref/food/transport/special）
 - **days[].weather**：每日天气（来自 search_web_info 联网查询结果），temp/condition/rain(布尔)/tip(穿衣建议)
 - **days[].hotels**：每日住宿推荐，含 name/price(每晚)/address/reason/checkin_date
-- **days[].items[].train_info**：跨城火车详情（仅 type=交通 的跨城火车用），含 train_no/from_station/to_station/departure_time/arrival_time/duration/seat_class/price。12306 工具查到的信息填这里
+- **days[].items[].train_info**：跨城火车详情（仅 type=交通 的跨城火车用），含 train_no/from_station/to_station/departure_time/arrival_time/duration/seat_class/price。query_train_tickets 查到的信息逐字照抄填这里
 - **days[].items[].transit_from_prev**：市内景点间交通（plan_route_between_spots 查到的），mode/duration/distance/cost
 - **packing**：必须是字符串数组 ["物品1","物品2"]，不要写成一段文字。generate_packing_list 返回的就是 JSON 数组
 - type 取值：交通/景点/餐饮/住宿/购物/自由。cost 为人均预估。references 填你引用过的攻略链接
@@ -172,11 +184,20 @@ def build_model(overrides=None):
             temperature=float(overrides.get("temperature") or os.getenv("OLLAMA_TEMPERATURE", "0.2")),
         )
     from langchain_openai import ChatOpenAI
+    api_base = overrides.get("api_base") or os.getenv(
+        "OPENAI_API_BASE", "https://api.openai.com/v1")
+    model_name = overrides.get("llm_model") or os.getenv(
+        "LLM_MODEL", "gpt-4o-mini")
+    temperature = float(overrides.get("temperature")
+                        or os.getenv("LLM_TEMPERATURE", "0.7"))
+    # Moonshot kimi-k2 系列只接受 temperature=1，否则 400
+    if "moonshot.cn" in api_base or model_name.lower().startswith("kimi"):
+        temperature = 1.0
     return ChatOpenAI(
         api_key=overrides.get("api_key") or os.getenv("OPENAI_API_KEY"),
-        base_url=overrides.get("api_base") or os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1"),
-        model=overrides.get("llm_model") or os.getenv("LLM_MODEL", "gpt-4o-mini"),
-        temperature=float(overrides.get("temperature") or os.getenv("LLM_TEMPERATURE", "0.7")),
+        base_url=api_base,
+        model=model_name,
+        temperature=temperature,
     )
 
 
@@ -198,16 +219,13 @@ async def create_default_checkpointer():
 
 
 async def build_agent(checkpointer=None, model=None):
-    """构建 Whither agent（异步：需加载 12306 MCP 工具）。
+    """构建 Whither agent。
+    跨城火车票走 12306 官方接口直连工具（query_train_tickets），不再依赖容器内 npx MCP。
     checkpointer 默认 SqliteSaver 持久化（进程重启后会话可恢复）。
     model 可选：用户自带 API Key 时传 build_model(overrides) 的结果。"""
     tools = list(M1_TOOLS)
 
-    from backend.app.agent.mcp_12306 import get_12306_tools
-    mcp_tools = await get_12306_tools()
-    tools += mcp_tools
-
-    # 高德 MCP：只加载工具供 plan_route_between_spots 内部调用，
+    # 高德 MCP：只加载工具供 plan_route_between_spots / search_hotels 内部调用，
     # 15 个原始工具不暴露给 Agent（避免 20+ 工具选错、费 token）
     from backend.app.agent.mcp_amap import load_amap_tools
     await load_amap_tools()

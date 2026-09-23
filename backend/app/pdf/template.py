@@ -235,18 +235,27 @@ def _timeline_items(items: list, first_stop_hotel: bool = False) -> str:
 
         # 12306 车次卡详情
         train_html = _train_detail(it) if it.get("type") == "交通" else ""
+        # 有结构化 train_info 时车次卡已含全部信息，不再渲染通用名称/元信息行，避免重复
+        struct_train = (it.get("type") == "交通"
+                        and isinstance(it.get("train_info"), dict)
+                        and bool(it.get("train_info")))
+        if struct_train:
+            body = train_html
+        else:
+            body = f"""
+            {_transit_badge(it.get('transit_from_prev'))}
+            {train_html}
+            <div class="tl-head"><span class="tl-name">{_esc(name)}</span>
+              {f'<span class="tl-cost">{cost}</span>' if cost else ''}</div>
+            <div class="tl-meta">{_esc(it.get('type', ''))} · {_esc(it.get('duration', ''))}
+              {f' · <span class="tl-note">{_esc(note)}</span>' if note else ''}</div>"""
 
         cards.append(f"""
         <div class="tl-item">
           <div class="tl-time">{_esc(time_label)}</div>
           <div class="tl-dot" style="background:{color}">{icon}</div>
           <div class="tl-card" style="border-left-color:{color}">
-            {_transit_badge(it.get('transit_from_prev'))}
-            {train_html}
-            <div class="tl-head"><span class="tl-name">{_esc(name)}</span>
-              {f'<span class="tl-cost">{cost}</span>' if cost else ''}</div>
-            <div class="tl-meta">{_esc(it.get('type', ''))} · {_esc(it.get('duration', ''))}
-              {f' · <span class="tl-note">{_esc(note)}</span>' if note else ''}</div>
+            {body}
           </div>
         </div>""")
     return "".join(cards)

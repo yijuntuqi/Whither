@@ -326,6 +326,109 @@ async def plan_route_between_spots(origin: str, destination: str, city: str = ""
         return f"交通查询异常（{type(e).__name__}），{origin}→{destination} 建议现场导航。"
 
 
+# M1_TOOLS 定义见文件末尾（query_train_tickets / search_hotels 在下文定义）
+
+
+# ============ 12306 官方直连（权威车次/余票/票价） ============
+
+@tool
+async def query_train_tickets(origin: str, destination: str, date: str) -> str:
+    """查询 12306 跨城火车实时余票和官方票价（官方接口直连，数据权威）。
+
+    用户需要跨城交通时必须调用本工具，禁止凭记忆报车次。
+    车次号、站名、时刻、票价必须逐字照抄返回结果，禁止改动任何字符。
+
+    Args:
+        origin: 出发城市或车站名，如"郑州"、"郑州东"
+        destination: 到达城市或车站名，如"武汉"
+        date: 乘车日期，格式 YYYY-MM-DD（相对日期先自行换算）
+    """
+    from backend.app.trains.client12306 import query_tickets
+    try:
+        trains = await query_tickets(origin, destination, date)
+    except ValueError as e:
+        return f"查询失败：{e}。请确认城市/车站名称正确后换词重试，不要编造车次。"
+    except Exception as e:
+        return f"12306 查询暂时失败（{type(e).__name__}）。请建议用户到 12306 官方渠道查询，不要编造车次和票价。"
+
+    if not trains:
+        return (f"12306：{origin}→{destination} {date} 暂无车次数据。"
+                "可能是该日期尚未开售（预售期约15天），可换最近可查日期作参考。")
+
+    # 可购优先，其余按时刻，最多展示 20 趟控制长度
+    trains.sort(key=lambda t: (t["can_buy"] != "Y", t["dep"] >= "24:00"))
+    show = trains[:20]
+    lines = [f"12306 实时数据 {origin}→{destination} {date}（共{len(trains)}趟，展示{len(show)}趟）："]
+    for i, t in enumerate(show, 1):
+        seat_bits = []
+        for label, st in list(t["seats"].items())[:4]:
+            price = (t.get("prices") or {}).get(label)
+            seat_bits.append(f"{label}:{st}" + (f" {price}" if price else ""))
+        flag = "可购" if t["can_buy"] == "Y" else ("未到起售" if t["can_buy"] == "IS_TIME_NOT_BUY" else "暂不可购")
+        lines.append(
+            f"{i}. {t['code']} | {t['from']}→{t['to']} | {t['dep']}-{t['arr']} "
+            f"| 历时{t['duration']} | {flag} | " + " | ".join(seat_bits))
+    lines.append("⚠️ 以上是12306官方实时结果：车次字母(G/D/K/Z/T等)、数字、时刻、票价必须原样照抄，"
+                 "清单之外的车次不存在，严禁编造或改写。")
+    return "\n".join(lines)
+
+
+# ============ 真实酒店搜索（高德 POI） ============
+
+@tool
+async def search_hotels(city: str, keyword: str = "") -> str:
+    """查询城市中真实在营的酒店/民宿（高德地图 POI 数据），返回真实店名和地址，用于住宿推荐。
+
+    住宿推荐必须以本工具返回的真实酒店为准，禁止编造"XX经济型酒店"这类占位名称。
+
+    Args:
+        city: 城市名，如"武汉"
+        keyword: 可选筛选词，如"经济"、"全季"、"亚朵"、"江汉路"、"地铁站"；留空返回综合酒店列表
+    """
+    from backend.app.agent.mcp_amap import get_amap_tool
+
+    kw = (keyword or "").strip()
+    keywords = kw if ("酒店" in kw or "宾馆" in kw or "民宿" in kw or "客栈" in kw) else f"{kw}酒店" if kw else "酒店"
+
+    t_search = get_amap_tool("maps_text_search")
+    entries: list[tuple[str, str]] = []
+    if t_search:
+        try:
+            r = _mcp_parse(await t_search.ainvoke({"keywords": keywords, "city": city or "全国"}))
+            if isinstance(r, dict):
+                for poi in (r.get("pois") or [])[:8]:
+                    name = poi.get("name", "")
+                    addr = poi.get("address") or "".join([
+                        poi.get("pname", ""), poi.get("cityname", ""),
+                        poi.get("adname", ""), poi.get("address", "")])
+                    if name:
+                        entries.append((name, addr))
+        except Exception:
+            pass
+
+    # 高德不可用时降级：Tavily 联网搜真实酒店
+    if not entries:
+        try:
+            from langchain_tavily import TavilySearch
+            raw = TavilySearch(max_results=5).invoke(
+                {"query": f"{city} {kw}酒店推荐 真实名称 地址"})
+            for r in raw.get("results", []):
+                entries.append((r.get("title", "").split("-")[0].split("—")[0].strip(),
+                                r.get("url", "")))
+        except Exception:
+            pass
+
+    if not entries:
+        return f"暂时未查到{city}的酒店信息。可建议用户在地图App中搜索{keywords}，不要编造酒店名。"
+
+    lines = [f"{city} 真实在营酒店/民宿（高德POI，关键词：{keywords}）："]
+    for i, (name, addr) in enumerate(entries[:8], 1):
+        lines.append(f"{i}. {name}" + (f" | 地址: {addr}" if addr else ""))
+    lines.append("⚠️ 必须从以上真实酒店中选择并原样使用名称和地址；高德数据不含房价，"
+                 "请按用户预算档位给出预估价格并标注(预估)；严禁使用『XX经济型酒店』等虚构占位名。")
+    return "\n".join(lines)
+
+
 M1_TOOLS = [search_travel_knowledge, list_supported_cities, search_web_info,
             calculate_budget, generate_packing_list, export_itinerary_pdf,
-            plan_route_between_spots]
+            plan_route_between_spots, query_train_tickets, search_hotels]
