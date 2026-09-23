@@ -69,7 +69,12 @@ app.add_middleware(
 
 @app.get("/")
 async def index():
-    return FileResponse(WEB_DIR / "index.html")
+    # no-cache：浏览器每次必须带 etag 向服务器校验，防止改版后用户仍运行缓存的旧 JS
+    # （曾因此导致 Markdown 渲染修复"看起来没生效"）；文件未变时服务器回 304，不浪费流量
+    return FileResponse(
+        WEB_DIR / "index.html",
+        headers={"Cache-Control": "no-cache, must-revalidate"},
+    )
 
 
 # 静态资源：logo 等（web/assets 目录，与 Netlify 部署目录结构一致）
