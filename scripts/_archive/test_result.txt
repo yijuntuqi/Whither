@@ -1,4 +1,0 @@
-==================================================
-Whither M0 Neon 基建测试
-==================================================
-URL: postgresql://neondb_owner:npg_lWr7PwVk4gam@ep-restless-mount...

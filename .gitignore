@@ -22,27 +22,23 @@ yarn-error.log*
 .env.local
 .env.*.local
 
-# 数据文件（PDF/爬虫数据/向量索引，体积大或含版权内容）
-data/pdfs/*
-data/crawled/*
-data/processed/*
-data/*.sqlite
-**/data/*.db
+# 数据文件（PDF/向量索引/缓存，体积大或含版权内容）
 data/exports/*
 data/probe_city/*
 data/ocr_texts/*
 data/*.db
 data/*.db-shm
 data/*.db-wal
-data/*.sqlite
-data/*.sqlite-shm
-data/*.sqlite-wal
-!data/rag.sqlite
+**/data/*.db
+**/data/*.sqlite
+**/data/*.sqlite-shm
+**/data/*.sqlite-wal
+!**/data/rag.sqlite
 data/pdf_cid_map.json
 logs/
-!data/pdfs/.gitkeep
-!data/crawled/.gitkeep
-!data/processed/.gitkeep
+
+# 旧版项目文档
+Wanderly-项目规划书.md
 
 # IDE
 .vscode/
@@ -62,9 +58,6 @@ skills-lock.json
 
 # 日志
 *.log
-
-# 旧文档（已被 Whither-项目规划书.md 替代）
-Wanderly-项目规划书.md
 
 # Jupyter
 .ipynb_checkpoints/

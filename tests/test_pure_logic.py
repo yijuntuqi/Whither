@@ -150,8 +150,8 @@ def test_render_contains_core_sections():
 
 def test_render_train_badge():
     html = render_html(_sample_itinerary())
-    # G 开头车次应有 train-badge 标记
-    assert 'class="train-badge">G89</span>' in html
+    # G 开头车次应有车次徽章
+    assert 'class="train-no">G89</span>' in html
 
 
 def test_render_escapes_html_injection():

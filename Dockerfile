@@ -25,13 +25,13 @@ RUN if [ "$USE_TUNA" = "1" ]; then \
 ENV PIP_INDEX_URL=${PIP_INDEX_URL}
 ENV PIP_TRUSTED_HOST=${PIP_TRUSTED_HOST}
 
-# 系统依赖：中文字体 + Playwright 依赖 + Node.js/npm（Debian trixie 自带 Node 20）
+# 系统依赖：中文字体 + Playwright 依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-noto-cjk fonts-noto-cjk-extra \
     libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
     libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
     libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 \
-    nodejs npm ca-certificates \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
