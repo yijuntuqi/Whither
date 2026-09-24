@@ -60,5 +60,5 @@ RUN mkdir -p data/exports
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
 EXPOSE 8000
-# Railway 注入动态 $PORT；shell 形式启动以展开变量
-CMD python -m uvicorn backend.app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
+# JSON 形式（sh -c 包装）：正确传递停止信号，同时展开 Railway 注入的 $PORT
+CMD ["sh", "-c", "python -m uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
