@@ -7,6 +7,7 @@
     <a href="#功能特性">功能特性</a> ·
     <a href="#技术栈">技术栈</a> ·
     <a href="#快速开始">快速开始</a> ·
+    <a href="#docker-部署">Docker</a> ·
     <a href="#支持-whither">支持</a>
   </p>
 </div>
@@ -110,6 +111,56 @@ python -m uvicorn backend.app.main:app --port 8000
 4. 说“导出 PDF”，点击下载按钮保存旅行手册
 
 也可以运行 `python backend/run_agent.py` 在命令行中与 Whither 交互。
+
+## Docker 部署
+
+项目根目录已包含 `Dockerfile`（与线上服务使用同一镜像配置）。
+
+### 1. 构建镜像
+
+```cmd
+:: 在项目根目录执行（首次约 5-10 分钟）
+docker build -t whither:latest .
+
+:: 国内网络构建慢时，可加参数切换清华镜像源
+docker build --build-arg USE_TUNA=1 -t whither:latest .
+```
+
+### 2. 本地运行容器
+
+```cmd
+:: 启动（用 .env 注入配置，浏览器访问 http://localhost:8000）
+docker run -d --name whither -p 8000:8000 --env-file .env whither:latest
+
+:: 查看日志 / 停止 / 删除容器
+docker logs -f whither
+docker stop whither
+docker rm whither
+```
+
+> 注意：容器内的 `localhost` 指容器自身。若 `.env` 要使用宿主机上的 Ollama，
+> Windows / macOS 下需把地址改为 `http://host.docker.internal:11434`；
+> 也可直接设置 `EMBEDDING_PROVIDER=dashscope` 使用云端 Embedding。
+
+### 3. 推送到 Docker Hub
+
+```cmd
+:: 登录（输入 Docker Hub 用户名和密码/令牌）
+docker login
+
+:: 打标签并推送（把 <用户名> 换成你的 Docker Hub 用户名）
+docker tag whither:latest <用户名>/whither:latest
+docker push <用户名>/whither:latest
+```
+
+### 4. 在服务器上拉取运行
+
+```bash
+docker pull <用户名>/whither:latest
+docker run -d --name whither -p 80:8000 \
+  --env-file .env --restart unless-stopped \
+  <用户名>/whither:latest
+```
 
 ## 项目结构
 
